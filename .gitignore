@@ -1,0 +1,31 @@
+.eggs
+build
+dist
+*.egg-info
+verbose_csrf_middleware/scmversion.py
+
+# Python
+*.pyc
+__pycache__
+
+# Virtual Environments / build
+/.env
+/.venv
+/bin/
+/include/
+/lib/
+/lib64
+/pyvenv.cfg
+/share/
+/verbose_csrf_middleware.egg-info/
+/verbose_csrf_middleware/_version.py
+/dist/
+
+
+# vim
+*.swo
+*.swp
+
+
+# sqlite
+/example_django_project/*sqlite3*

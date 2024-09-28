@@ -27,7 +27,10 @@ invalid_token_chars_re = _lazy_re_compile("[^a-zA-Z0-9]")
 
 REASON_BAD_ORIGIN = "Origin checking failed - %s does not match any trusted origins."
 REASON_NO_REFERER = "Referer checking failed - no Referer."
-REASON_BAD_REFERER = "Referer checking failed - %s does not match any trusted origins."
+
+REASON_BAD_REFERER_DISALLOWED_HOST = "Referer checking failed - DisallowedHost while attempting to find good referer."
+REASON_BAD_REFERER_NOT_SAME = "Referer checking failed - '%s' does not match any of %s."
+
 REASON_NO_CSRF_COOKIE = "CSRF cookie not set."
 REASON_CSRF_TOKEN_MISSING = "CSRF token missing."
 REASON_MALFORMED_REFERER = "Referer checking failed - Referer is malformed."
@@ -274,32 +277,80 @@ class CsrfViewMiddleware(MiddlewareMixin):
             patch_vary_headers(response, ("Cookie",))
 
     def _origin_verified(self, request):
+        non_true_tests = []
+        non_matched_domains = []
+
         request_origin = request.META["HTTP_ORIGIN"]
         try:
             good_host = request.get_host()
         except DisallowedHost:
-            pass
+            non_true_tests.append("Origin header match w/ Host skipped (Host is Disallowed)")
         else:
             good_origin = "%s://%s" % (
                 "https" if request.is_secure() else "http",
                 good_host,
             )
             if request_origin == good_origin:
-                return True
+                return (True, "request's origin matches the host")
+            else:
+                # more verbosely: Origin header does not match (validated) Host (or X-Forwarded-Host, if configured)
+                non_true_tests.append(
+                    f"Origin header does not match (deduced) Host: '{request_origin}' != '{good_origin}'")
+
         if request_origin in self.allowed_origins_exact:
-            return True
+            return (True, "request's origin is an exact match")
+        else:
+            non_matched_domains.extend(self.allowed_origins_exact)
+
         try:
             parsed_origin = urlparse(request_origin)
         except ValueError:
-            return False
+            return (False, f"Origin header is malformed: '{request_origin}'")
+
+        if not settings.CSRF_TRUSTED_ORIGINS:
+            # The below would be even more explicit, but it also comes with the disadvantage of nudging the reader in
+            # the direction of configuring CSRF_TRUSTED_ORIGINS, which is not always necessary. In terms of the amount
+            # of available debug information ("which path was taken"), the 'exit immediately' is equivalent, because the
+            # lack of the info showing up in the error message implies the current path was taken.
+            # non_true_tests.append("CSRF_TRUSTED_ORIGINS is empty")
+            return (False, "; ".join(non_true_tests))
+
         request_scheme = parsed_origin.scheme
         request_netloc = parsed_origin.netloc
-        return any(
+        any_matched_subdomain = any(
             is_same_domain(request_netloc, host)
             for host in self.allowed_origin_subdomains.get(request_scheme, ())
         )
 
+        if any_matched_subdomain:
+            return (True, "request's origin is a subdomain match")
+        else:
+            allowed_origin_subdomains = self.allowed_origin_subdomains.get(request_scheme, ())
+
+            # we convert back to the original format in settings.CSRF_TRUSTED_ORIGINS
+            non_matched_domains.extend(request_scheme + "://*" + host for host in allowed_origin_subdomains)
+
+            # for a complete error message, add all the subdomains that were not matched by virtue of the scheme too
+            # (at the end). For explicitness, we add the text "(wrong scheme)"
+            flip = lambda x: "http" if x == "https" else "https"  # noqa: E731
+            non_matched_domains.extend(
+                flip(request_scheme) + "://*" + host + " (wrong scheme)"
+                for host in self.allowed_origin_subdomains.get(flip(request_scheme), ()))
+
+            # 'nor' points back to "Origin header" in the previous sentence
+            this_reason = f"nor any of the CSRF_TRUSTED_ORIGINS: {non_matched_domains}"
+
+            non_true_tests.append(this_reason)
+
+        return (False, "; ".join(non_true_tests))
+
     def _check_referer(self, request):
+        # Django's Referer checking is already quite verbose (except for the non-failing case, but when things are good
+        # nobody's debugging): the various failures have distinct error messages, except REASON_MALFORMED_REFERER (but
+        # malformed headers are not happening for server-misconfigurations, and that's what we attempt to improve w.r.t.
+        # Django). This leaves REASON_BAD_REFERER; we add the expectation to that one.
+        non_matched_domains = []
+
         referer = request.META.get("HTTP_REFERER")
         if referer is None:
             raise RejectRequest(REASON_NO_REFERER)
@@ -322,6 +373,10 @@ class CsrfViewMiddleware(MiddlewareMixin):
             for host in self.csrf_trusted_origins_hosts
         ):
             return
+
+        else:
+            non_matched_domains.extend(self.csrf_trusted_origins_hosts)
+
         # Allow matching the configured cookie domain.
         good_referer = (
             settings.SESSION_COOKIE_DOMAIN
@@ -335,14 +390,15 @@ class CsrfViewMiddleware(MiddlewareMixin):
                 # request.get_host() includes the port.
                 good_referer = request.get_host()
             except DisallowedHost:
-                raise RejectRequest(REASON_BAD_REFERER % referer.geturl())
+                raise RejectRequest(REASON_BAD_REFERER_DISALLOWED_HOST)
         else:
             server_port = request.get_port()
             if server_port not in ("443", "80"):
                 good_referer = "%s:%s" % (good_referer, server_port)
 
         if not is_same_domain(referer.netloc, good_referer):
-            raise RejectRequest(REASON_BAD_REFERER % referer.geturl())
+            non_matched_domains.append(good_referer)
+            raise RejectRequest(REASON_BAD_REFERER_NOT_SAME % (referer.netloc, non_matched_domains))
 
     def _bad_token_message(self, reason, token_source):
         if token_source != "POST":
@@ -439,10 +495,9 @@ class CsrfViewMiddleware(MiddlewareMixin):
         # Reject the request if the Origin header doesn't match an allowed
         # value.
         if "HTTP_ORIGIN" in request.META:
-            if not self._origin_verified(request):
-                return self._reject(
-                    request, REASON_BAD_ORIGIN % request.META["HTTP_ORIGIN"]
-                )
+            origin_verified, reason = self._origin_verified(request)
+            if not origin_verified:
+                return self._reject(request, reason)
         elif request.is_secure():
             # If the Origin header wasn't provided, reject HTTPS requests if
             # the Referer header doesn't match an allowed value.

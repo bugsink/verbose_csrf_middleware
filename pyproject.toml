@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools_scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+version_file = "verbose_csrf_middleware/scmversion.py"
+
+[project]
+name = "verbose_csrf_middleware"
+authors = [
+    {name = "Bugsink BV", email = "info@bugsink.com"},
+]
+description = "Verbatim copy of Django's CSRF middleware, but with more verbose error messages."
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "BSD-3-Clause"}
+classifiers = [
+    "Framework :: Django",
+    "Programming Language :: Python :: 3",
+]
+dynamic = ["version", "dependencies"]
+
+[tool.setuptools]
+include-package-data = true  # this is the default, but explicit is better than implicit
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+    "verbose_csrf_middleware*",
+]
+
+# exclude = ["my_package.tests*"]  # exclude packages matching these glob patterns (empty by default)
+
+[tool.setuptools.dynamic]
+dependencies = {file = []}
