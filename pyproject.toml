@@ -20,6 +20,11 @@ classifiers = [
 ]
 dynamic = ["version", "dependencies"]
 
+[project.urls]
+Homepage = "https://bugsink.com/docs/verbose_csrf_middleware/"
+Documentation = "https://bugsink.com/docs/verbose_csrf_middleware/"
+Issues = "https://github.com/bugsink/verbose_csrf_middleware/issues"
+
 [tool.setuptools]
 include-package-data = true  # this is the default, but explicit is better than implicit
 
