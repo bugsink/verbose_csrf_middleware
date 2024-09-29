@@ -375,7 +375,7 @@ class CsrfViewMiddleware(MiddlewareMixin):
             return
 
         else:
-            non_matched_domains.extend(self.csrf_trusted_origins_hosts)
+            non_matched_domains.extend(["'" + host + "' (trusted)" for host in self.csrf_trusted_origins_hosts])
 
         # Allow matching the configured cookie domain.
         good_referer = (
@@ -383,12 +383,15 @@ class CsrfViewMiddleware(MiddlewareMixin):
             if settings.CSRF_USE_SESSIONS
             else settings.CSRF_COOKIE_DOMAIN
         )
+        good_referer_source = "session_cookie" if settings.CSRF_USE_SESSIONS else "csrf_cookie"
+
         if good_referer is None:
             # If no cookie domain is configured, allow matching the current
             # host:port exactly if it's permitted by ALLOWED_HOSTS.
             try:
                 # request.get_host() includes the port.
                 good_referer = request.get_host()
+                good_referer_source = "host"
             except DisallowedHost:
                 raise RejectRequest(REASON_BAD_REFERER_DISALLOWED_HOST)
         else:
@@ -397,8 +400,9 @@ class CsrfViewMiddleware(MiddlewareMixin):
                 good_referer = "%s:%s" % (good_referer, server_port)
 
         if not is_same_domain(referer.netloc, good_referer):
-            non_matched_domains.append(good_referer)
-            raise RejectRequest(REASON_BAD_REFERER_NOT_SAME % (referer.netloc, non_matched_domains))
+            non_matched_domains.append("'" + good_referer + "' (" + good_referer_source + ")")
+            non_matched_domains_s = "[" + (", ".join(non_matched_domains)) + "]"
+            raise RejectRequest(REASON_BAD_REFERER_NOT_SAME % (referer.netloc, non_matched_domains_s))
 
     def _bad_token_message(self, reason, token_source):
         if token_source != "POST":

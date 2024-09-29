@@ -103,7 +103,7 @@ class VerboseCsrfMiddlewareTest(DjangoTestCase):
         # (while not sending an Origin header at all)
         self._test(
             referer='https://www.wrong.org/', secure=True,
-            reason="Referer checking failed - 'www.wrong.org' does not match any of ['testserver'].",
+            reason="Referer checking failed - 'www.wrong.org' does not match any of ['testserver' (host)].",
             )
 
     @override_settings(CSRF_TRUSTED_ORIGINS=["https://csrf_trusted_origin.org"])
@@ -111,7 +111,7 @@ class VerboseCsrfMiddlewareTest(DjangoTestCase):
         self._test(
             referer='https://refererheader.org/', secure=True,
             reason="Referer checking failed - 'refererheader.org' does not match any of "
-                   "['csrf_trusted_origin.org', 'testserver'].",
+                   "['csrf_trusted_origin.org' (trusted), 'testserver' (host)].",
             )
 
     @override_settings(CSRF_TRUSTED_ORIGINS=["http://domainmatchestoo.org"])  # note: http, not https
@@ -132,7 +132,16 @@ class VerboseCsrfMiddlewareTest(DjangoTestCase):
     def test_csrf_cookie_domain_configured_but_not_matching_referer(self):
         self._test(
             referer='https://nonmatching.example.org/', secure=True,
-            reason="Referer checking failed - 'nonmatching.example.org' does not match any of ['expected.example.org']."
+            reason="Referer checking failed - 'nonmatching.example.org' does not match any of "
+                   "['expected.example.org' (csrf_cookie)]."
+            )
+
+    @override_settings(CSRF_USE_SESSIONS=True, SESSION_COOKIE_DOMAIN="expected.example.org")
+    def test_session_cookie_domain_configured_but_not_matching_referer(self):
+        self._test(
+            referer='https://nonmatching.example.org/', secure=True,
+            reason="Referer checking failed - 'nonmatching.example.org' does not match any of "
+                   "['expected.example.org' (session_cookie)]."
             )
 
     @override_settings(CSRF_COOKIE_DOMAIN="expected.example.org")
