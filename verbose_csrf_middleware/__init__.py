@@ -305,7 +305,8 @@ class CsrfViewMiddleware(MiddlewareMixin):
         try:
             parsed_origin = urlparse(request_origin)
         except ValueError:
-            return (False, f"Origin header is malformed: '{request_origin}'")
+            non_true_tests.append(f"Origin header is malformed: '{request_origin}'")
+            return (False, "; ".join(non_true_tests))
 
         if not settings.CSRF_TRUSTED_ORIGINS:
             # Note on the position of this check: given that allowed_hosts is deduced from CSRF_TRUSTED_ORIGINS, one

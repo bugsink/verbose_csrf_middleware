@@ -78,7 +78,9 @@ class VerboseCsrfMiddlewareTest(DjangoTestCase):
 
     def test_malformed_origin_given(self):
         self._test(
-            origin="http://invalid[ipv6/", reason="Origin header is malformed: 'http://invalid[ipv6/'"
+            origin="http://invalid[ipv6/",
+            reason="Origin header does not match (deduced) Host: 'http://invalid[ipv6/' != 'http://testserver'; "
+                   "Origin header is malformed: 'http://invalid[ipv6/'"
             )
 
     def test_referer_is_given_not_secure(self):
