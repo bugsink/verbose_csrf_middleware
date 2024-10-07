@@ -308,6 +308,11 @@ class CsrfViewMiddleware(MiddlewareMixin):
             return (False, f"Origin header is malformed: '{request_origin}'")
 
         if not settings.CSRF_TRUSTED_ORIGINS:
+            # Note on the position of this check: given that allowed_hosts is deduced from CSRF_TRUSTED_ORIGINS, one
+            # might be tempted to move it up a bit. However, this would change the behavior w.r.t. standard Django,
+            # for the case of malformed origin headers. Irrelevant as that may be in practice, I'm sticking closely to
+            # my promise "the exact same but with more verbose error messages".
+            #
             # The below would be even more explicit, but it also comes with the disadvantage of nudging the reader in
             # the direction of configuring CSRF_TRUSTED_ORIGINS, which is not always necessary. In terms of the amount
             # of available debug information ("which path was taken"), the 'exit immediately' is equivalent, because the
