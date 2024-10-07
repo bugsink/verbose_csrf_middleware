@@ -61,6 +61,27 @@ class VerboseCsrfMiddlewareTest(DjangoTestCase):
             reason="Origin header does not match (deduced) Host: 'https://anything.example.org' != "
                    "'https://testserver'; nor any of the CSRF_TRUSTED_ORIGINS: ['http://*.example.org (wrong scheme)']")
 
+    def test_origin_non_matching_schemes(self):
+        self._test(
+            origin="https://testserver", reason="Origin header does not match (deduced) Host: "
+            "'https://testserver' != 'http://testserver' (wrong scheme)"
+            )
+
+    @override_settings(VERBOSE_CSRF_REASON_SCHEME_MISMATCH="(wrong scheme); fix your proxy's X-Forwarded-Proto")
+    def test_origin_non_matching_schemes_different_message(self):
+        # The principled/general case for "any given Django site" is simply the detection of differing schemes. In
+        # 'theory' this could happen also when someone makes a request from a secure to non-secure server, so
+        # verbose_csrf_middleware cannot be 100% sure that the cause for this is proxy-misconfiguration.
+        #
+        # For a particular piece of softare that happens to be implemented in Django, but is intended to be self-hosted
+        # by many different individuals and organisations (e.g. Bugsink) one might know that there's never any
+        # intentional cross-scheme POSTing going on. In that case "wrong scheme" always just means "Django's confused
+        # about is_secure", and you'd want to point people in the right direction.
+        self._test(
+            origin="https://testserver", reason="Origin header does not match (deduced) Host: "
+            "'https://testserver' != 'http://testserver' (wrong scheme); fix your proxy's X-Forwarded-Proto"
+            )
+
     def test_non_matching_origin_given(self):
         # this is what you'd get if you tried to POST to the server from a different domain, or (more likely) if your
         # proxy is misconfigured and mangles the Origin header

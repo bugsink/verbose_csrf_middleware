@@ -49,6 +49,12 @@ CSRF_ALLOWED_CHARS = string.ascii_letters + string.digits
 CSRF_SESSION_KEY = "_csrftoken"
 
 
+def _get_REASON_SCHEME_MISMATCH():
+    if hasattr(settings, "VERBOSE_CSRF_REASON_SCHEME_MISMATCH"):
+        return settings.VERBOSE_CSRF_REASON_SCHEME_MISMATCH
+    return "(wrong scheme)"
+
+
 def _get_failure_view():
     """Return the view to be used for CSRF rejections."""
     return get_callable(settings.CSRF_FAILURE_VIEW)
@@ -296,6 +302,11 @@ class CsrfViewMiddleware(MiddlewareMixin):
                 # more verbosely: Origin header does not match (validated) Host (or X-Forwarded-Host, if configured)
                 non_true_tests.append(
                     f"Origin header does not match (deduced) Host: '{request_origin}' != '{good_origin}'")
+
+                if (request_origin.startswith("https://") and good_origin.startswith("http://")
+                        and request_origin[8:] == good_origin[7:]):
+
+                    non_true_tests[-1] += " " + _get_REASON_SCHEME_MISMATCH()
 
         if request_origin in self.allowed_origins_exact:
             return (True, "request's origin is an exact match")
