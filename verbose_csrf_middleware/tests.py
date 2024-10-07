@@ -76,6 +76,11 @@ class VerboseCsrfMiddlewareTest(DjangoTestCase):
             origin="null", reason="Origin header does not match (deduced) Host: 'null' != 'http://testserver'"
             )
 
+    def test_malformed_origin_given(self):
+        self._test(
+            origin="http://invalid[ipv6/", reason="Origin header is malformed: 'http://invalid[ipv6/'"
+            )
+
     def test_referer_is_given_not_secure(self):
         self._test(referer="http://anythinggoes/debug/csrf/")  # not secure: referrer check is skipped
 
