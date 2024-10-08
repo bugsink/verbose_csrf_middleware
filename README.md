@@ -5,7 +5,7 @@ This is a verbatim copy of the Django CSRF middleware, but it is more verbose in
 This is especially useful when CSRF failures are happening due to some misconfiguration of your server, your reverse
 proxy, or some combination thereof.
 
-Django 4.2 introduced various "more strict" CSRF checks, in particular checks on the `Origin` and `Referer` header.
+Django 4.0 introduced various "more strict" CSRF checks, in particular checks on the `Origin` and `Referer` header.
 This middleware can help you debug problems with those checks in your setup.
 
 [Full documentaiton](https://www.bugsink.com/docs/verbose_csrf_middleware/)
