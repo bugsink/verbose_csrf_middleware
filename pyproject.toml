@@ -8,7 +8,7 @@ version_file = "verbose_csrf_middleware/scmversion.py"
 [project]
 name = "verbose_csrf_middleware"
 authors = [
-    {name = "Bugsink BV", email = "info@bugsink.com"},
+    {name = "Bugsink B.V.", email = "info@bugsink.com"},
 ]
 description = "Verbatim copy of Django's CSRF middleware, but with more verbose error messages."
 readme = "README.md"
@@ -21,9 +21,10 @@ classifiers = [
 dynamic = ["version", "dependencies"]
 
 [project.urls]
-Homepage = "https://bugsink.com/docs/verbose_csrf_middleware/"
-Documentation = "https://bugsink.com/docs/verbose_csrf_middleware/"
-Issues = "https://github.com/bugsink/verbose_csrf_middleware/issues"
+homepage = "https://www.bugsink.com/docs/verbose_csrf_middleware/"
+documentation = "https://www.bugsink.com/docs/verbose_csrf_middleware/"
+issues = "https://github.com/bugsink/verbose_csrf_middleware/issues"
+repository = "https://github.com/bugsink/verbose_csrf_middleware"
 
 [tool.setuptools]
 include-package-data = true  # this is the default, but explicit is better than implicit
