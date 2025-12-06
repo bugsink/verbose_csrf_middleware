@@ -108,7 +108,7 @@ def get_token(request):
 
     A side effect of calling this function is to make the csrf_protect
     decorator and the CsrfViewMiddleware add a CSRF cookie and a 'Vary: Cookie'
-    header to the outgoing response.  For this reason, you may need to use this
+    header to the outgoing response. For this reason, you may need to use this
     function lazily, as is done by the csrf context processor.
     """
     if "CSRF_COOKIE" in request.META:
@@ -209,7 +209,7 @@ class CsrfViewMiddleware(MiddlewareMixin):
     # requires_csrf_token decorator.
     def _accept(self, request):
         # Avoid checking the request twice by adding a custom attribute to
-        # request.  This will be relevant when both decorator and middleware
+        # request. This will be relevant when both decorator and middleware
         # are used.
         request.csrf_processing_done = True
         return None
@@ -326,27 +326,27 @@ class CsrfViewMiddleware(MiddlewareMixin):
             # non_true_tests.append("CSRF_TRUSTED_ORIGINS is empty")
             return (False, "; ".join(non_true_tests))
 
-        request_scheme = parsed_origin.scheme
-        request_netloc = parsed_origin.netloc
+        parsed_origin_scheme = parsed_origin.scheme
+        parsed_origin_netloc = parsed_origin.netloc
         any_matched_subdomain = any(
-            is_same_domain(request_netloc, host)
-            for host in self.allowed_origin_subdomains.get(request_scheme, ())
+            is_same_domain(parsed_origin_netloc, host)
+            for host in self.allowed_origin_subdomains.get(parsed_origin_scheme, ())
         )
 
         if any_matched_subdomain:
             return (True, "request's origin is a subdomain match")
         else:
-            allowed_origin_subdomains = self.allowed_origin_subdomains.get(request_scheme, ())
+            allowed_origin_subdomains = self.allowed_origin_subdomains.get(parsed_origin_scheme, ())
 
             # we convert back to the original format in settings.CSRF_TRUSTED_ORIGINS
-            non_matched_domains.extend(request_scheme + "://*" + host for host in allowed_origin_subdomains)
+            non_matched_domains.extend(parsed_origin_scheme + "://*" + host for host in allowed_origin_subdomains)
 
             # for a complete error message, add all the subdomains that were not matched by virtue of the scheme too
             # (at the end). For explicitness, we add the text "(wrong scheme)"
             flip = lambda x: "http" if x == "https" else "https"  # noqa: E731
             non_matched_domains.extend(
-                flip(request_scheme) + "://*" + host + " (wrong scheme)"
-                for host in self.allowed_origin_subdomains.get(flip(request_scheme), ()))
+                flip(parsed_origin_scheme) + "://*" + host + " (wrong scheme)"
+                for host in self.allowed_origin_subdomains.get(flip(parsed_origin_scheme), ()))
 
             # 'nor' points back to "Origin header" in the previous sentence
             this_reason = f"nor any of the CSRF_TRUSTED_ORIGINS: {non_matched_domains}"
