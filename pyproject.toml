@@ -12,7 +12,7 @@ authors = [
 ]
 description = "Verbatim copy of Django's CSRF middleware, but with more verbose error messages."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = "BSD-3-Clause"
 classifiers = [
     "Framework :: Django",
