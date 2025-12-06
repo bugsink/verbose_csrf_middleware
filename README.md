@@ -72,9 +72,6 @@ useful info.
 
 ### Compatability
 
-This middleware is a verbatim copy of Django 5.2's csrf middleware, with changes for verbosity.
-There were no (meaningful) changes between Django 5.2 and Django 6.0 to that code.
-So the middleware is compatible with
-
-* Django 5.2
-* Django 6.0
+This middleware is a verbatim copy of Django's csrf middleware, with changes for verbosity.
+For each minor version of Django (from Django 5.2 onwards) a matching version of the
+middleware is provided.
